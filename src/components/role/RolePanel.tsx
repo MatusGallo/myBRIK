@@ -598,7 +598,6 @@ export default function RolePanel({ mode, role, onClose, onEdit }: RolePanelProp
           </div>
         ) : roleUsers.map((u, i) => {
           const hovered = hoveredUser === i
-          const bg = hovered ? 'var(--t-bgHover)' : 'var(--t-bgPrimary)'
           const isLast = i === roleUsers.length - 1
           return (
             <div
@@ -651,7 +650,7 @@ export default function RolePanel({ mode, role, onClose, onEdit }: RolePanelProp
       clipPath: 'inset(0 0 0 -20px)',
     }}>
       <Form
-        width={800}
+        width={720}
         minHeight={0}
         footer={{
           actions: isDetail

@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef } from 'react'
 import { Calendar, SlidersHorizontal, Check } from 'lucide-react'
-import type { LucideProps } from 'lucide-react'
+import type { LucideProps, LucideIcon } from 'lucide-react'
 
-const BrandCheck = (props: LucideProps) => <Check {...props} color="var(--t-textMyDOCKPrimary)" />
+const BrandCheck = forwardRef<SVGSVGElement, LucideProps>((props, ref) => (
+  <Check ref={ref} {...props} color="var(--t-textMyDOCKPrimary)" />
+)) as LucideIcon
 import { FilterButton, FilterSelect, Tag, TextButton, Menu, MenuItem, Search } from '@matusgallo/mysabds'
 import { DateField, TextInputField } from './FilterDropdown'
 

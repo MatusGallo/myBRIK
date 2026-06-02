@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { User, Shield, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { NavItem, IconButton } from '@matusgallo/mysabds'
 import ProfilPage from './ProfilPage'
 import ZmenaHeslaPage from './ZmenaHeslaPage'
@@ -13,7 +14,7 @@ interface NastaveniModalProps {
   onClose: () => void
 }
 
-const navItems: { label: string; icon: React.ElementType; section: NastaveniSection }[] = [
+const navItems: { label: string; icon: LucideIcon; section: NastaveniSection }[] = [
   { label: 'Profil', icon: User, section: 'profil' },
   { label: 'Změna hesla', icon: Shield, section: 'zmena-hesla' },
 ]

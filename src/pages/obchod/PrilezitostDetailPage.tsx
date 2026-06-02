@@ -149,11 +149,6 @@ function ukolStavVariant(stav: string): BadgeVariant {
   return 'neutral'
 }
 
-function ukolBorderColor(stav: string): string {
-  if (stav === 'Aktivní') return '#16A34A'
-  return '#DC2626'
-}
-
 function getInitials(name: string): string {
   return name.split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
 }
@@ -285,7 +280,7 @@ function KVRow({ label, value, orange, copyable }: { label: string; value: strin
   )
 }
 
-function ProhlidkaRow({ p, isLast }: { p: typeof PROHLIDKY[0]; isLast?: boolean }) {
+function ProhlidkaRow({ p }: { p: typeof PROHLIDKY[0]; isLast?: boolean }) {
   const [detailOpen, setDetailOpen] = useState(false)
   const [vysledekOpen, setVysledekOpen] = useState(false)
   return (

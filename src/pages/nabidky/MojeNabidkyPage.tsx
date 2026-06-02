@@ -3,7 +3,7 @@ import NabidkyFilterBar, { NabidkyFilterValues, emptyFilterValues } from '../../
 import NabidkyTable from '../../components/nabidky/NabidkyTable'
 
 export default function MojeNabidkyPage() {
-  const [activeFilter, setActiveFilter] = useState<NabidkyFilterValues>(emptyFilterValues)
+  const [, setActiveFilter] = useState<NabidkyFilterValues>(emptyFilterValues)
   const [page, setPage] = useState(1)
 
   function handleFilter(values: NabidkyFilterValues) {
