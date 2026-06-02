@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* myBRIK brand — override design system tokens */
+:root {
+  --color-primary: #E05524;
+  --color-primary-dark: #C44A1E;
+  --t-bgMyDOCKPrimary: #E05524;
+  --t-bgMyDOCKHover: #C44A1E;
+  --t-bgMyDOCKSecondary: #9E3A18;
+  --t-bgMyDOCKTertiary: #FDF0EB;
+  --t-borderMyDOCK: #E05524;
+  --t-textMyDOCKPrimary: #E05524;
+  --t-textMyDOCKPrimaryHover: #C44A1E;
+  --t-borderSelected: #E05524;
+}
+
+@keyframes tagEnter {
+  0%   { opacity: 0; transform: scale(0.7) translateY(6px); }
+  65%  { opacity: 1; transform: scale(1.04) translateY(-1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes tagExit {
+  0%   { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.7) translateY(4px); }
+}
+
+@keyframes dropdownEnter {
+  0%   { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.filter-btn-wrap > button {
+  border-width: 1px !important;
+}
+
+.dropdown-search > div {
+  border-radius: 8px !important;
+}
+
+/* Right-aligned TableHeaderCell — overrides design-system internal flex-start */
+.th-right > div {
+  align-items: flex-end !important;
+}
+
+/* Form section: dividers between top-level children */
+.form-section-content > *:not(:first-child) {
+  border-top: 1px solid #d9dbdd;
+  padding-top: 16px;
+}
+
+/* Table row "Smazat" icon — force textPrimary color regardless of IconButton variant */
+.icon-trash-primary svg {
+  color: var(--t-textPrimary);
+  stroke: var(--t-textPrimary);
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.dark * {
+  scrollbar-color: #3f3f46 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #F8F9FA;
+  color: #111827;
+}
