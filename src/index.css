@@ -57,6 +57,15 @@
   stroke: var(--t-textPrimary);
 }
 
+/* Skryje scrollbar (Chrome/Safari/Firefox/IE) — použití: div.hide-scrollbar */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 * {
   box-sizing: border-box;
   scrollbar-width: thin;

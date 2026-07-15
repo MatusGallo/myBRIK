@@ -22,6 +22,52 @@ export const NABIDKY_COLUMNS = [
 
 export type NabidkyColKey = typeof NABIDKY_COLUMNS[number]['key']
 
+export type SortDir = 'none' | 'asc' | 'desc'
+export interface SortState {
+  key: NabidkyColKey | null
+  dir: SortDir
+}
+
+function parseCzDateTime(dt: string | null | undefined): number {
+  if (!dt) return 0
+  const [date, time] = dt.split(' ')
+  const [d, m, y] = (date ?? '').split('.')
+  const [hh = '0', mm = '0'] = (time ?? '').split(':')
+  const iso = `${y}-${m?.padStart(2, '0')}-${d?.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}`
+  const t = Date.parse(iso)
+  return Number.isNaN(t) ? 0 : t
+}
+
+function sortValue(row: Nabidka, key: NabidkyColKey): string | number {
+  switch (key) {
+    case 'id':          return row.id
+    case 'nabidka':     return row.nazev.toLocaleLowerCase('cs')
+    case 'typObjektu':  return row.typObjektu
+    case 'pobocka':     return row.pobocka.toLocaleLowerCase('cs')
+    case 'makler':      return row.makler.toLocaleLowerCase('cs')
+    case 'podkategorie':return row.podkategorie.toLocaleLowerCase('cs')
+    case 'stavNabidky': return row.stavNabidky.toLocaleLowerCase('cs')
+    case 'vyhradni':    return row.vyhradni ? 1 : 0
+    case 'klient':      return (row.klient ?? '').toLocaleLowerCase('cs')
+    case 'cena':        return row.cena
+    case 'vytvoreno':   return parseCzDateTime(row.datumVytvoreni)
+    case 'upraveno':    return parseCzDateTime(row.datumPosledniZmeny)
+    case 'konecLhuty':  return parseCzDateTime(row.konecLhutyVkladu)
+  }
+}
+
+export function sortNabidky(data: Nabidka[], sort: SortState): Nabidka[] {
+  if (!sort.key || sort.dir === 'none') return data
+  const key = sort.key
+  const sign = sort.dir === 'asc' ? 1 : -1
+  return [...data].sort((a, b) => {
+    const av = sortValue(a, key)
+    const bv = sortValue(b, key)
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sign
+    return String(av).localeCompare(String(bv), 'cs') * sign
+  })
+}
+
 interface NabidkyTableProps {
   data: Nabidka[]
   page: number
@@ -29,6 +75,8 @@ interface NabidkyTableProps {
   onPageChange: (page: number) => void
   totalCount: number
   hiddenCols?: Set<string>
+  sort?: SortState
+  onSort?: (key: NabidkyColKey) => void
   onRowClick?: (id: number) => void
   onEdit?: (id: number) => void
   onDuplicate?: (id: number) => void
@@ -80,9 +128,10 @@ const FIXED_COL_WIDTHS: [string, number][] = [
   ['upraveno', 130], ['konecLhuty', 116],
 ]
 
-export default function NabidkyTable({ data, page, totalPages, onPageChange, hiddenCols, onRowClick, onEdit, onDuplicate, onDelete }: NabidkyTableProps) {
+export default function NabidkyTable({ data, page, totalPages, onPageChange, hiddenCols, sort, onSort, onRowClick, onEdit, onDuplicate, onDelete }: NabidkyTableProps) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
   const show = (key: string) => !hiddenCols?.has(key)
+  const sortOf = (key: NabidkyColKey): SortDir => (sort?.key === key ? sort.dir : 'none')
 
   const tableMinWidth = FIXED_COL_WIDTHS.reduce((s, [k, w]) => s + (show(k) ? w : 0), 0)
     + (show('klient') ? KLIENT_MIN_WIDTH : 0)
@@ -100,29 +149,29 @@ export default function NabidkyTable({ data, page, totalPages, onPageChange, hid
           {/* Hlavička */}
           {data.length > 0 && <div style={{ display: 'flex' }}>
             <div style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, overflow: 'hidden', display: 'flex', flex: 1, height: HEADER_HEIGHT, background: 'var(--t-bgSecondary)' }}>
-              {show('id')           && <TableHeaderCell label="ID" width={72} sortable />}
-              {show('nabidka')      && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Nabídka" width={400} /></div>}
-              {show('typObjektu')   && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Typ objektu" width={120} /></div>}
-              {show('pobocka')      && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Pobočka" width={160} /></div>}
-              {show('makler')       && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Makléř" width={180} /></div>}
-              {show('podkategorie') && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Podkategorie" width={156} /></div>}
-              {show('stavNabidky')  && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Stav" width={200} /></div>}
-              {show('vyhradni')     && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Výhradní spolupráce" width={160} /></div>}
+              {show('id')           && <TableHeaderCell label="ID" width={72} sortable sort={sortOf('id')} onSort={() => onSort?.('id')} />}
+              {show('nabidka')      && <TableHeaderCell label="Nabídka" width={400} sortable sort={sortOf('nabidka')} onSort={() => onSort?.('nabidka')} />}
+              {show('typObjektu')   && <TableHeaderCell label="Typ objektu" width={120} sortable sort={sortOf('typObjektu')} onSort={() => onSort?.('typObjektu')} />}
+              {show('pobocka')      && <TableHeaderCell label="Pobočka" width={160} sortable sort={sortOf('pobocka')} onSort={() => onSort?.('pobocka')} />}
+              {show('makler')       && <TableHeaderCell label="Makléř" width={180} sortable sort={sortOf('makler')} onSort={() => onSort?.('makler')} />}
+              {show('podkategorie') && <TableHeaderCell label="Podkategorie" width={156} sortable sort={sortOf('podkategorie')} onSort={() => onSort?.('podkategorie')} />}
+              {show('stavNabidky')  && <TableHeaderCell label="Stav" width={200} sortable sort={sortOf('stavNabidky')} onSort={() => onSort?.('stavNabidky')} />}
+              {show('vyhradni')     && <TableHeaderCell label="Výhradní spolupráce" width={160} sortable sort={sortOf('vyhradni')} onSort={() => onSort?.('vyhradni')} />}
               {show('klient') && (
-                <div style={{ flex: 1, minWidth: KLIENT_MIN_WIDTH, height: HEADER_HEIGHT, background: 'var(--t-bgSecondary)', display: 'inline-flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 12, fontWeight: 500, color: 'var(--t-textSecondary)', whiteSpace: 'nowrap' }}>
-                  Klient
+                <div style={{ flex: 1, minWidth: KLIENT_MIN_WIDTH, height: HEADER_HEIGHT, background: 'var(--t-bgSecondary)', display: 'inline-flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box' }}>
+                  <TableHeaderCellContent label="Klient" sortable sort={sortOf('klient')} onClick={() => onSort?.('klient')} />
                 </div>
               )}
               {show('cena') && (
                 <div style={{ height: 40, width: 160, background: 'var(--t-bgSecondary)', display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', flexShrink: 0, boxSizing: 'border-box' }}>
                   <div style={{ height: 24, paddingLeft: 16, paddingRight: 16, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <TableHeaderCellContent label="Cena" sortable />
+                    <TableHeaderCellContent label="Cena" sortable sort={sortOf('cena')} onClick={() => onSort?.('cena')} />
                   </div>
                 </div>
               )}
-              {show('vytvoreno')   && <TableHeaderCell label="Vytvořeno" width={130} sortable />}
-              {show('upraveno')    && <TableHeaderCell label="Upraveno" width={130} sortable />}
-              {show('konecLhuty')  && <div style={{ pointerEvents: 'none' }}><TableHeaderCell label="Konec lhůty" width={116} /></div>}
+              {show('vytvoreno')   && <TableHeaderCell label="Vytvořeno" width={130} sortable sort={sortOf('vytvoreno')} onSort={() => onSort?.('vytvoreno')} />}
+              {show('upraveno')    && <TableHeaderCell label="Upraveno" width={130} sortable sort={sortOf('upraveno')} onSort={() => onSort?.('upraveno')} />}
+              {show('konecLhuty')  && <TableHeaderCell label="Konec lhůty" width={116} sortable sort={sortOf('konecLhuty')} onSort={() => onSort?.('konecLhuty')} />}
             </div>
             <div style={{ position: 'sticky', right: 0, zIndex: 2, width: ACTION_WIDTH, height: HEADER_HEIGHT, background: 'var(--t-bgSecondary)', borderTopRightRadius: 8, borderBottomRightRadius: 8, flexShrink: 0 }} />
           </div>}

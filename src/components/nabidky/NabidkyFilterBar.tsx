@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, forwardRef } from 'react'
-import { Calendar, SlidersHorizontal, Columns3Cog, Eye, EyeOff, Check } from 'lucide-react'
+import { SlidersHorizontal, Columns3Cog, Eye, EyeOff, Check } from 'lucide-react'
 import type { LucideProps, LucideIcon } from 'lucide-react'
 
 const BrandCheck = forwardRef<SVGSVGElement, LucideProps>((props, ref) => (
@@ -142,7 +142,11 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
   }
 
   const tags = buildTags(values)
-  const hasFiltr = !!(values.pobocka || values.makler || values.nazevNabidky || values.cenaVetsiNez || values.cenaMensiNez)
+  const hasFiltr = !!(
+    values.datumVytvoreniOd || values.datumVytvoreniDo ||
+    values.datumPosledniZmenyOd || values.datumPosledniZmenyDo ||
+    values.nazevNabidky || values.cenaVetsiNez || values.cenaMensiNez
+  )
 
   return (
     <div ref={ref} className="mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -167,6 +171,17 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
           )}
         </div>
 
+        {/* Typ nabídky */}
+        <div style={{ position: 'relative' }}>
+          <div className="filter-btn-wrap"><FilterButton label="Typ" active={values.typNabidky.length > 0} onClick={() => toggleDropdown('typNabidky')} /></div>
+          {open === 'typNabidky' && (
+            <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
+              <MenuItem label="Prodej" trailIcon={values.typNabidky.includes('prodej') ? BrandCheck : undefined} onClick={() => toggleMulti('typNabidky', 'prodej')} />
+              <MenuItem label="Pronájem" trailIcon={values.typNabidky.includes('pronajem') ? BrandCheck : undefined} onClick={() => toggleMulti('typNabidky', 'pronajem')} />
+            </Menu>
+          )}
+        </div>
+
         {/* Objekt */}
         <div style={{ position: 'relative' }}>
           <div className="filter-btn-wrap"><FilterButton label="Objekt" active={values.typy.length > 0} onClick={() => toggleDropdown('objekt')} /></div>
@@ -175,6 +190,30 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
               {TYPY_OBJEKTU.map(typ => (
                 <MenuItem key={typ} label={capitalize(typ)} trailIcon={values.typy.includes(typ) ? BrandCheck : undefined} onClick={() => toggleMulti('typy', typ)} />
               ))}
+            </Menu>
+          )}
+        </div>
+
+        {/* Makléř */}
+        <div style={{ position: 'relative' }}>
+          <div className="filter-btn-wrap"><FilterButton label="Makléř" active={!!values.makler} onClick={() => toggleDropdown('makler')} /></div>
+          {open === 'makler' && (
+            <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
+              <div style={{ padding: '8px 12px' }}>
+                <TextInputField label="Makléř" value={values.makler} onChange={v => update({ ...values, makler: v })} />
+              </div>
+            </Menu>
+          )}
+        </div>
+
+        {/* Pobočka */}
+        <div style={{ position: 'relative' }}>
+          <div className="filter-btn-wrap"><FilterButton label="Pobočka" active={!!values.pobocka} onClick={() => toggleDropdown('pobocka')} /></div>
+          {open === 'pobocka' && (
+            <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
+              <div style={{ padding: '8px 12px' }}>
+                <TextInputField label="Pobočka" value={values.pobocka} onChange={v => update({ ...values, pobocka: v })} />
+              </div>
             </Menu>
           )}
         </div>
@@ -190,51 +229,16 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
           )}
         </div>
 
-        {/* Typ nabídky */}
-        <div style={{ position: 'relative' }}>
-          <div className="filter-btn-wrap"><FilterButton label="Typ nabídky" active={values.typNabidky.length > 0} onClick={() => toggleDropdown('typNabidky')} /></div>
-          {open === 'typNabidky' && (
-            <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
-              <MenuItem label="Prodej" trailIcon={values.typNabidky.includes('prodej') ? BrandCheck : undefined} onClick={() => toggleMulti('typNabidky', 'prodej')} />
-              <MenuItem label="Pronájem" trailIcon={values.typNabidky.includes('pronajem') ? BrandCheck : undefined} onClick={() => toggleMulti('typNabidky', 'pronajem')} />
-            </Menu>
-          )}
-        </div>
-
-        {/* Vytvořeno */}
-        <div style={{ position: 'relative' }}>
-          <FilterSelect label="Vytvořeno" leadIcon={Calendar} selected={!!(values.datumVytvoreniOd || values.datumVytvoreniDo)} onClick={() => toggleDropdown('vytvoreno')} />
-          {open === 'vytvoreno' && (
-            <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
-              <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <DateField label="Od" value={values.datumVytvoreniOd} onChange={v => update({ ...values, datumVytvoreniOd: v })} />
-                <DateField label="Do" value={values.datumVytvoreniDo} onChange={v => update({ ...values, datumVytvoreniDo: v })} />
-              </div>
-            </Menu>
-          )}
-        </div>
-
-        {/* Upraveno */}
-        <div style={{ position: 'relative' }}>
-          <FilterSelect label="Upraveno" leadIcon={Calendar} selected={!!(values.datumPosledniZmenyOd || values.datumPosledniZmenyDo)} onClick={() => toggleDropdown('upraveno')} />
-          {open === 'upraveno' && (
-            <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
-              <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <DateField label="Od" value={values.datumPosledniZmenyOd} onChange={v => update({ ...values, datumPosledniZmenyOd: v })} />
-                <DateField label="Do" value={values.datumPosledniZmenyDo} onChange={v => update({ ...values, datumPosledniZmenyDo: v })} />
-              </div>
-            </Menu>
-          )}
-        </div>
-
-        {/* Filtr (additional) */}
+        {/* Filtr (Vytvořeno, Upraveno, Název, Cena) */}
         <div style={{ position: 'relative' }}>
           <FilterSelect label="Filtr" leadIcon={SlidersHorizontal} selected={hasFiltr} onClick={() => toggleDropdown('filtr')} />
           {open === 'filtr' && (
             <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 'auto', right: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both' }} width={320}>
               <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <TextInputField label="Pobočka" value={values.pobocka} onChange={v => update({ ...values, pobocka: v })} />
-                <TextInputField label="Makléř" value={values.makler} onChange={v => update({ ...values, makler: v })} />
+                <DateField label="Vytvořeno od" value={values.datumVytvoreniOd} onChange={v => update({ ...values, datumVytvoreniOd: v })} />
+                <DateField label="Vytvořeno do" value={values.datumVytvoreniDo} onChange={v => update({ ...values, datumVytvoreniDo: v })} />
+                <DateField label="Upraveno od" value={values.datumPosledniZmenyOd} onChange={v => update({ ...values, datumPosledniZmenyOd: v })} />
+                <DateField label="Upraveno do" value={values.datumPosledniZmenyDo} onChange={v => update({ ...values, datumPosledniZmenyDo: v })} />
                 <TextInputField label="Název nabídky" value={values.nazevNabidky} onChange={v => update({ ...values, nazevNabidky: v })} />
                 <TextInputField label="Cena větší než" value={values.cenaVetsiNez} onChange={v => update({ ...values, cenaVetsiNez: v })} type="number" />
                 <TextInputField label="Cena menší než" value={values.cenaMensiNez} onChange={v => update({ ...values, cenaMensiNez: v })} type="number" />
@@ -291,7 +295,7 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
           transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', paddingTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           {tags.map(tag => (
             <div
               key={tag.key}

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Download, Trash, Copy } from 'lucide-react'
-import { Button, Dialog } from '@matusgallo/mysabds'
+import { Button, Dialog, SwitchGroup } from '@matusgallo/mysabds'
 import NabidkyFilterBar, { NabidkyFilterValues, emptyFilterValues } from '../../components/nabidky/NabidkyFilterBar'
-import NabidkyTable, { NABIDKY_COLUMNS } from '../../components/nabidky/NabidkyTable'
+import NabidkyTable, { NABIDKY_COLUMNS, sortNabidky } from '../../components/nabidky/NabidkyTable'
+import type { NabidkyColKey, SortState } from '../../components/nabidky/NabidkyTable'
 import { nabidkyData } from '../../data/mockData'
 import type { Nabidka } from '../../data/mockData'
 import NovaNabidkaForm from '../../components/nabidky/NovaNabidkaForm'
@@ -12,6 +13,16 @@ import { nabidkaToFormData } from '../../components/nabidky/nabidkaToFormData'
 
 const LOCKED = new Set(['id', 'nabidka'])
 const ALL_TOGGLEABLE = NABIDKY_COLUMNS.filter(c => !LOCKED.has(c.key)).map(c => c.key)
+
+type StavMode = 'vse' | 'aktualni' | 'ukoncene'
+const UKONCENE_MATCH = ['storno', 'zobchodováno', 'archiv', 'rezervace zrušeno']
+
+function matchesMode(item: Nabidka, mode: StavMode): boolean {
+  if (mode === 'vse') return true
+  const s = item.stavNabidky.toLowerCase()
+  const ukoncene = UKONCENE_MATCH.some(k => s.includes(k))
+  return mode === 'ukoncene' ? ukoncene : !ukoncene
+}
 
 function applyFilters(data: Nabidka[], f: NabidkyFilterValues) {
   return data.filter(item => {
@@ -48,6 +59,18 @@ export default function NabidkyListPage() {
   const [activeFilter, setActiveFilter] = useState<NabidkyFilterValues>(emptyFilterValues)
   const [page, setPage] = useState(1)
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set())
+  const [sort, setSort] = useState<SortState>({ key: null, dir: 'none' })
+  const [mode, setMode] = useState<StavMode>('vse')
+
+  function handleSort(key: NabidkyColKey) {
+    setSort(prev => {
+      if (prev.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      if (prev.dir === 'desc') return { key: null, dir: 'none' }
+      return { key, dir: 'asc' }
+    })
+    setPage(1)
+  }
 
   function duplicateNabidka(target: Nabidka) {
     const newId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1
@@ -76,9 +99,11 @@ export default function NabidkyListPage() {
   function hideAllCols() { setHiddenCols(new Set(ALL_TOGGLEABLE)) }
   function showAllCols() { setHiddenCols(new Set()) }
   const pageSize = 10
-  const filtered = applyFilters(items, activeFilter)
-  const totalPages = Math.ceil(filtered.length / pageSize)
-  const pageData = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const inMode = items.filter(item => matchesMode(item, mode))
+  const filtered = applyFilters(inMode, activeFilter)
+  const sorted = sortNabidky(filtered, sort)
+  const totalPages = Math.ceil(sorted.length / pageSize)
+  const pageData = sorted.slice((page - 1) * pageSize, page * pageSize)
 
   function handleFilter(values: NabidkyFilterValues) {
     setActiveFilter(values)
@@ -110,6 +135,18 @@ export default function NabidkyListPage() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <SwitchGroup
+          value={mode}
+          onChange={(v) => { setMode(v as StavMode); setPage(1) }}
+          options={[
+            { value: 'vse',      label: 'Vše' },
+            { value: 'aktualni', label: 'Aktuální' },
+            { value: 'ukoncene', label: 'Ukončené' },
+          ]}
+        />
+      </div>
+
       <NabidkyFilterBar
         onChange={handleFilter}
         hasData={filtered.length > 0}
@@ -124,8 +161,10 @@ export default function NabidkyListPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        totalCount={filtered.length}
+        totalCount={sorted.length}
         hiddenCols={hiddenCols}
+        sort={sort}
+        onSort={handleSort}
         onRowClick={id => navigate(`/nabidky/${id}`)}
         onEdit={id => setEditId(id)}
         onDuplicate={id => setDuplicateConfirmId(id)}
