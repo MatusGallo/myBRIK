@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check, AlertTriangle, Search as SearchIcon, Home, Building, MapPin, Building2, Warehouse, Upload, Trash2, Plus, Calculator, X, type LucideIcon } from 'lucide-react'
 import { Button, TextButton, TextField, Select, TextArea, CheckboxItem, Badge, IconButton } from '@matusgallo/mysabds'
 import SelectSearch from '../shared/SelectSearch'
@@ -1562,15 +1563,16 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
     confirm(activeIdx)
   }
 
-  return (
+  return createPortal(
     <div style={{
-      margin: -24, background: 'var(--t-bgSecondary)',
-      minHeight: 'calc(100vh - 56px)',
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'var(--t-bgSecondary)',
+      overflowY: 'auto',
       display: 'flex', flexDirection: 'column',
     }}>
       {/* Sticky header */}
       <div style={{
-        position: 'sticky', top: 56, zIndex: 20,
+        position: 'sticky', top: 0, zIndex: 20,
         background: 'var(--t-bgSecondary)',
       }}>
         <div style={{
@@ -1596,7 +1598,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 20, alignItems: 'flex-start' }}>
           {/* Step rail */}
           <div style={{
-            position: 'sticky', top: 144,
+            position: 'sticky', top: 88,
             background: 'var(--t-bgPrimary)',
             border: '1px solid var(--t-borderPrimary)',
             borderRadius: 12,
@@ -1718,6 +1720,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           onClose={() => setKlientModalOpen(false)}
         />
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

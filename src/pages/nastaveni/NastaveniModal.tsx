@@ -100,7 +100,6 @@ export default function NastaveniModal({ open, section, onSectionChange, onClose
                   label={item.label}
                   icon={item.icon}
                   active={section === item.section}
-                  selected={section === item.section}
                   onClick={() => onSectionChange(item.section)}
                 />
               ))}

@@ -239,19 +239,19 @@ export default function DokumentyPage() {
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
               {/* Search pill */}
               <div style={{
-                width: 240, height: 40, paddingTop: 4, paddingBottom: 4, paddingLeft: 4, paddingRight: 12,
+                width: 240, height: 32, paddingTop: 4, paddingBottom: 4, paddingLeft: 4, paddingRight: 12,
                 background: 'var(--t-bgPrimary)', borderRadius: 9999,
                 outline: '1px solid var(--t-borderPrimary)', outlineOffset: -1,
                 display: 'flex', alignItems: 'center', gap: 4, cursor: 'text',
               }}>
-                <div style={{ width: 32, height: 32, padding: 8, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ width: 24, height: 24, padding: 4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <Search size={16} style={{ color: 'var(--t-textSecondary)' }} />
                 </div>
                 <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: 'var(--t-textSecondary)' }}>Vyhledat</span>
               </div>
               {/* Filter button */}
               <div style={{
-                width: 40, height: 40, padding: 8,
+                width: 32, height: 32, padding: 8,
                 background: 'var(--t-bgPrimary)', borderRadius: 9999,
                 outline: '1px solid var(--t-borderPrimary)', outlineOffset: -1,
                 display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer',
@@ -259,7 +259,7 @@ export default function DokumentyPage() {
                 <SlidersHorizontal size={16} style={{ color: 'var(--t-textPrimary)' }} />
               </div>
               {/* Upload button */}
-              <Button label="Nahrát" variant="primary" leadIcon={Upload} />
+              <Button label="Nahrát" variant="primary" size="md" leadIcon={Upload} />
             </div>
           </div>
         </div>

@@ -380,7 +380,7 @@ export default function KalendarPage() {
       <IconButton icon={ChevronLeft} variant="ghost" size="lg" tooltip="Předchozí" onClick={prevPeriod} />
       <IconButton icon={ChevronRight} variant="ghost" size="lg" tooltip="Následující" onClick={nextPeriod} />
       {viewSwitcher}
-      <Button label="Nová událost" variant="primary" leadIcon={Plus} />
+      <Button label="Nová událost" variant="primary" size="md" leadIcon={Plus} />
     </div>
   )
 

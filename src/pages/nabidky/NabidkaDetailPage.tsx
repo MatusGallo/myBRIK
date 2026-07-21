@@ -15,7 +15,7 @@ import {
 import {
   IconButton, TableHeaderCell, TableCell, Badge,
   Avatar, Button, TextButton, Menu, MenuItem, FilterSelect, Alert, Dialog, Search, Breadcrumbs,
-  Toggle, RadioGroupItem, typography, TooltipIcon,
+  Toggle, RadioGroupItem, typography, TooltipIcon, LineTabGroup,
 } from '@matusgallo/mysabds'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { nabidkyData } from '../../data/mockData'
@@ -697,143 +697,230 @@ const PODPISY_LIST: Array<{ name: string; status: 'signed' | 'pending' }> = [
   { name: 'Rezervační smlouva', status: 'signed' },
   { name: 'Zprostředkovatelská', status: 'pending' },
 ]
-const AGENDA_LIST: Array<{ typ: string; datum: string; cas: string }> = [
-  { typ: 'Prohlídka', datum: 'Út 28.10.2026', cas: '14:00' },
-  { typ: 'Podpis smlouvy', datum: 'Čt 30.10.2026', cas: '10:30' },
-  { typ: 'Předání nemovitosti', datum: 'Po 03.11.2026', cas: '09:00' },
+const AGENDA_LIST: Array<{ typ: string; klient: string; datum: string; cas: string }> = [
+  { typ: 'Prohlídka', klient: 'Jan Novák', datum: 'Út 28.10.2026', cas: '14:00' },
+  { typ: 'Podpis smlouvy', klient: 'Eva Dvořáková', datum: 'Čt 30.10.2026', cas: '10:30' },
+  { typ: 'Předání nemovitosti', klient: 'Petr Svoboda', datum: 'Po 03.11.2026', cas: '09:00' },
 ]
 const NAKLADY_SUM = 8400
 const PROVIZE_SUM = 10000
 
-function DashboardWidgetsLeft({ onTab, onNaklad }: { onTab: (t: string) => void; onNaklad: () => void }) {
-  const nakladyPct = Math.round((NAKLADY_SUM / PROVIZE_SUM) * 100)
+function WidgetExporty({ onTab }: { onTab: (t: string) => void }) {
   const exportCounts = EXPORT_SERVERS_INITIAL.reduce(
     (acc, s) => { acc[serverStatus(s)] += 1; return acc },
     { ok: 0, error: 0, off: 0 } as Record<ExportStatus, number>,
   )
   const exportSummary: Array<{ label: string; count: number; color: string }> = [
     { label: 'Exportováno',    count: exportCounts.ok,    color: '#16A34A' },
-    { label: 'Chyba exportu',  count: exportCounts.error, color: '#DC2626' },
+    { label: 'Chyba exportu',  count: exportCounts.error, color: 'var(--t-textDanger)' },
     { label: 'Neexportuje se', count: exportCounts.off,   color: 'var(--t-textSecondary)' },
   ]
   return (
-    <>
-      <DashboardWidget icon={Share2} title="Exporty" onClick={() => onTab('exporty')}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {exportSummary.map(stat => (
-            <div key={stat.label} style={{
-              flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
-              padding: '10px 12px', borderRadius: 8, background: 'var(--t-bgSecondary)',
-            }}>
-              <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: stat.color }}>
-                {stat.count}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: stat.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {stat.label}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DashboardWidget>
-
-      <DashboardWidget icon={Landmark} title="Stav hypotéky" onClick={() => onTab('hypoteka')}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-          <Badge label="Řešeno sabem" variant="brand" size="sm" lead="indicator" />
-          <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', marginTop: 6 }}>
-            Fáze: <span style={{ color: 'var(--t-textPrimary)', fontWeight: 500 }}>Schvalování v bance</span>
-          </span>
-        </div>
-      </DashboardWidget>
-
-      <DashboardWidget icon={Coins} title="Náklady" onClick={onNaklad}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>
-              {formatCena(NAKLADY_SUM)}
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>
-              / {formatCena(PROVIZE_SUM)} provize
+    <DashboardWidget icon={Share2} title="Exporty" onClick={() => onTab('exporty')}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {exportSummary.map(stat => (
+          <div key={stat.label} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
+            padding: '10px 12px', borderRadius: 8, background: 'var(--t-bgSecondary)',
+          }}>
+            <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: stat.color }}>{stat.count}</span>
+            <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {stat.label}
             </span>
           </div>
-          <div style={{ height: 6, borderRadius: 999, background: 'var(--t-bgSecondary)', overflow: 'hidden' }}>
-            <div style={{
-              width: `${Math.min(100, nakladyPct)}%`, height: '100%',
-              background: nakladyPct > 80 ? '#DC2626' : '#E05524',
-            }} />
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>{nakladyPct} % z provize</span>
-        </div>
-      </DashboardWidget>
-    </>
+        ))}
+      </div>
+    </DashboardWidget>
   )
 }
 
-function DashboardWidgetsRight({ onTab }: { onTab: (t: string) => void }) {
+function WidgetStavHypoteky({ onTab }: { onTab: (t: string) => void }) {
+  // Na jedné nemovitosti může běžet víc žádostí o hypotéku (víc klientů).
+  // Widget dává jen souhrn — počet žádostí a jejich rozložení podle fáze.
+  // Který klient je v jaké fázi řeší samostatný výpis na záložce hypotéky.
+  const faze: Array<{ label: string; count: number }> = [
+    { label: 'Schvalování v bance', count: 2 },
+    { label: 'Schváleno',           count: 1 },
+    { label: 'Sběr podkladů',       count: 1 },
+  ]
+  const celkem = faze.reduce((s, f) => s + f.count, 0)
   return (
-    <>
-      <DashboardWidget icon={Users} title="Příležitosti" onClick={() => onTab('exporty')}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>3</span>
-          <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>aktivní</span>
+    <DashboardWidget icon={Landmark} title="Stav hypotéky" onClick={() => onTab('hypoteka')}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Header — velké číslo vlevo, popis + stav vpravo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 36, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)', flexShrink: 0 }}>
+            {celkem}
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>žádosti o hypotéku</span>
+            <Badge label="Řešeno sabem" variant="info" size="sm" lead="indicator" />
+          </div>
         </div>
-        <div style={{ marginTop: 4, fontSize: 13, color: 'var(--t-textSecondary)' }}>
-          Poslední: <span style={{ color: 'var(--t-textPrimary)', fontWeight: 500 }}>Jan Novák — 22.10.2026</span>
-        </div>
-      </DashboardWidget>
 
-      <DashboardWidget icon={Calendar} title="Agenda" onClick={() => onTab('zakladni')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {AGENDA_LIST.slice(0, 3).map(a => (
-            <div
-              key={a.typ + a.datum}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 10px',
-                background: 'var(--t-bgSecondary)',
-                borderRadius: 8,
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                <span style={{
-                  fontSize: 13, fontWeight: 600, color: 'var(--t-textPrimary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {a.typ}
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>{a.datum}</span>
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t-textPrimary)', flexShrink: 0 }}>
-                {a.cas}
-              </span>
-            </div>
-          ))}
-        </div>
-      </DashboardWidget>
-
-      <DashboardWidget icon={PenLine} title="Elektronické podpisy" onClick={() => onTab('dokumenty')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {PODPISY_LIST.map(p => (
-            <div key={p.name} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 12px', borderRadius: 8,
-              background: 'var(--t-bgSecondary)',
+        {/* Rozpad podle fáze — boxy vedle sebe */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {faze.map(f => (
+            <div key={f.label} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
+              padding: '10px 12px', borderRadius: 8, background: 'var(--t-bgSecondary)',
             }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: 999, flexShrink: 0,
-                background: p.status === 'signed' ? '#16A34A' : '#F59E0B',
-              }} />
-              <span style={{ fontSize: 13, color: 'var(--t-textPrimary)' }}>{p.name}</span>
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--t-textSecondary)' }}>
-                {p.status === 'signed' ? 'Podepsáno' : 'Čeká na podpis'}
+              <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>{f.count}</span>
+              <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {f.label}
               </span>
             </div>
           ))}
         </div>
-      </DashboardWidget>
-    </>
+      </div>
+    </DashboardWidget>
+  )
+}
+
+function WidgetNaklady({ onNaklad }: { onNaklad: () => void }) {
+  const nakladyPct = Math.round((NAKLADY_SUM / PROVIZE_SUM) * 100)
+  return (
+    <DashboardWidget icon={Coins} title="Náklady" onClick={onNaklad}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>
+            {formatCena(NAKLADY_SUM)}
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>
+            / {formatCena(PROVIZE_SUM)} provize
+          </span>
+        </div>
+        <div style={{ height: 6, borderRadius: 999, background: 'var(--t-bgSecondary)', overflow: 'hidden' }}>
+          <div style={{
+            width: `${Math.min(100, nakladyPct)}%`, height: '100%',
+            background: nakladyPct > 80 ? '#DC2626' : '#E05524',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>{nakladyPct} % z provize</span>
+      </div>
+    </DashboardWidget>
+  )
+}
+
+function WidgetPrilezitosti({ onTab }: { onTab: (t: string) => void }) {
+  return (
+    <DashboardWidget icon={Users} title="Příležitosti" onClick={() => onTab('exporty')}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>3</span>
+        <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>aktivní</span>
+      </div>
+      <div style={{ marginTop: 4, fontSize: 13, color: 'var(--t-textSecondary)' }}>
+        Poslední: <span style={{ color: 'var(--t-textPrimary)', fontWeight: 500 }}>Jan Novák — 22.10.2026</span>
+      </div>
+    </DashboardWidget>
+  )
+}
+
+function WidgetAgenda({ onTab }: { onTab: (t: string) => void }) {
+  return (
+    <DashboardWidget icon={Calendar} title="Agenda" onClick={() => onTab('zakladni')}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {AGENDA_LIST.slice(0, 3).map(a => (
+          <div
+            key={a.typ + a.datum}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 10px',
+              background: 'var(--t-bgSecondary)',
+              borderRadius: 8,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <span style={{
+                fontSize: 13, fontWeight: 600, color: 'var(--t-textPrimary)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {a.typ}
+              </span>
+              <span style={{
+                fontSize: 12, color: 'var(--t-textSecondary)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {a.klient}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t-textPrimary)' }}>{a.datum}</span>
+              <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>{a.cas}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </DashboardWidget>
+  )
+}
+
+function WidgetPary({ onClick }: { onClick: () => void }) {
+  // Tři dlaždice v řadě. „Nezpracováno" je akční (čeká na makléře), proto první
+  // „Nezpracováno" je akční (čeká na makléře) — samostatný box na celou šířku,
+  // danger barvou. „Odesláno" a „Zamítnuto" jsou informativní, ve dvou boxech pod tím.
+  const nezpracovano = 2
+  const info: Array<{ label: string; count: number }> = [
+    { label: 'Odesláno',  count: 5 },
+    { label: 'Zamítnuto', count: 1 },
+  ]
+  return (
+    <DashboardWidget icon={TrendingUp} title="Nejnovější páry" onClick={onClick}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Nezpracováno — samostatný box na celou šířku, popisek vlevo, hodnota vpravo */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          padding: '10px 12px', borderRadius: 8, background: 'rgba(220, 38, 38, 0.12)',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#DC2626' }}>Nezpracováno</span>
+          <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: '#DC2626', flexShrink: 0 }}>
+            {nezpracovano}
+          </span>
+        </div>
+
+        {/* Odesláno + Zamítnuto — dva boxy vedle sebe, popisek vlevo, hodnota vpravo */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {info.map(stat => (
+            <div key={stat.label} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              padding: '10px 12px', borderRadius: 8, background: 'var(--t-bgSecondary)',
+            }}>
+              <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {stat.label}
+              </span>
+              <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)', flexShrink: 0 }}>
+                {stat.count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DashboardWidget>
+  )
+}
+
+function WidgetPodpisy({ onTab }: { onTab: (t: string) => void }) {
+  return (
+    <DashboardWidget icon={PenLine} title="Elektronické podpisy" onClick={() => onTab('dokumenty')}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {PODPISY_LIST.map(p => (
+          <div key={p.name} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', borderRadius: 8,
+            background: 'var(--t-bgSecondary)',
+          }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+              background: p.status === 'signed' ? '#16A34A' : '#F59E0B',
+            }} />
+            <span style={{ fontSize: 13, color: 'var(--t-textPrimary)' }}>{p.name}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--t-textSecondary)' }}>
+              {p.status === 'signed' ? 'Podepsáno' : 'Čeká na podpis'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </DashboardWidget>
   )
 }
 
@@ -1323,31 +1410,6 @@ const TABS = [
   { value: 'hypoteka', label: 'Hypotéka' },
 ]
 
-// Pill tab s brandovou barvou pro aktivní stav (DS PillTab má aktivní barvu napevno).
-function BrandPillTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  const [hover, setHover] = useState(false)
-  const background = active ? '#E05524' : hover ? 'var(--t-bgHover)' : 'transparent'
-  const color = active ? '#ffffff' : 'var(--t-textSecondary)'
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        height: 40, paddingLeft: 16, paddingRight: 16,
-        background, borderRadius: 9999, border: 'none', cursor: 'pointer',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0, transition: 'background 0.15s',
-      }}
-    >
-      <span style={{
-        fontFamily: 'Inter', fontSize: 14, fontWeight: 500, lineHeight: '20px',
-        color, whiteSpace: 'nowrap', transition: 'color 0.15s',
-      }}>{label}</span>
-    </button>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NabidkaDetailPage() {
@@ -1495,7 +1557,7 @@ export default function NabidkaDetailPage() {
     <div style={{ margin: -24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)' }}>
 
       {/* Header title — scrolls away with the page */}
-      <div style={{ background: 'var(--t-bgSecondary)' }}>
+      <div style={{ background: 'var(--t-bgPrimary)' }}>
         <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
           {/* Title row */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '24px 0 8px' }}>
@@ -1516,11 +1578,9 @@ export default function NabidkaDetailPage() {
       </div>
 
       {/* Tabs — stay sticky under the top bar while the title scrolls away */}
-      <div ref={headerRef} style={{ position: 'sticky', top: 56, zIndex: 10, background: 'var(--t-bgSecondary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '8px 24px', display: 'flex', gap: 4 }}>
-          {TABS.map(t => (
-            <BrandPillTab key={t.value} label={t.label} active={tab === t.value} onClick={() => setTab(t.value)} />
-          ))}
+      <div ref={headerRef} style={{ position: 'sticky', top: 56, zIndex: 10, background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
+        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
+          <LineTabGroup tabs={TABS} value={tab} onChange={setTab} />
         </div>
       </div>
 
@@ -1662,11 +1722,21 @@ export default function NabidkaDetailPage() {
               </div>
               {/* /Property hero card */}
 
-              {/* Widgety — 2 sloupce: Makléř/exporty/hypotéka/náklady/poznámka + Kontakt/leady/příležitosti/agenda/podpisy */}
+              {/* Widgety — 2 sloupce: Agenda/klient/makléř/hypotéka/náklady + Exporty/příležitosti/páry/podpisy/poznámka */}
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, alignItems: 'flex-start' }}>
 
-                {/* Sloupec 1 — Makléř + exporty/hypotéka/náklady + interní poznámka */}
+                {/* Sloupec 1 — Agenda + Klient + Makléř + Náklady */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <WidgetAgenda onTab={setTab} />
+
+                  <DashboardWidget icon={Users} title="Klient">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {KONTAKTNI_OSOBY.map((osoba) => (
+                        <KlientRow key={osoba.email} osoba={osoba} onClick={() => navigate('/klienti')} />
+                      ))}
+                    </div>
+                  </DashboardWidget>
+
                   <DashboardWidget icon={User} title="Makléř" onClick={() => navigate('/uzivatele')}>
                     <div style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
@@ -1690,7 +1760,20 @@ export default function NabidkaDetailPage() {
                     </div>
                   </DashboardWidget>
 
-                  <DashboardWidgetsLeft onTab={setTab} onNaklad={() => setNovyNakladOpen(true)} />
+                  <WidgetNaklady onNaklad={() => setNovyNakladOpen(true)} />
+                </div>
+
+                {/* Sloupec 2 — Exporty + Příležitosti + Nejnovější páry + Elektronické podpisy + Stav hypotéky + Interní poznámka */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <WidgetExporty onTab={setTab} />
+
+                  <WidgetPrilezitosti onTab={setTab} />
+
+                  <WidgetPary onClick={() => navigate('/obchod/lead')} />
+
+                  <WidgetPodpisy onTab={setTab} />
+
+                  <WidgetStavHypoteky onTab={setTab} />
 
                   {internalNote.trim() && (
                     <DashboardWidget
@@ -1707,25 +1790,6 @@ export default function NabidkaDetailPage() {
                       </div>
                     </DashboardWidget>
                   )}
-                </div>
-
-                {/* Sloupec 2 — Kontaktní osoba + leady + příležitosti/agenda/podpisy */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <DashboardWidget icon={Users} title="Klient">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {KONTAKTNI_OSOBY.map((osoba) => (
-                        <KlientRow key={osoba.email} osoba={osoba} onClick={() => navigate('/klienti')} />
-                      ))}
-                    </div>
-                  </DashboardWidget>
-
-                  <DashboardWidget icon={TrendingUp} title="Nejnovější leady" onClick={() => navigate('/obchod/lead')}>
-                    <div style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>
-                      Momentálně neexistuje lead na tuto nabídku.
-                    </div>
-                  </DashboardWidget>
-
-                  <DashboardWidgetsRight onTab={setTab} />
                 </div>
               </div>
               {/* /Widgety */}

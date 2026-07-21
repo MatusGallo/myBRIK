@@ -6,14 +6,50 @@
 :root {
   --color-primary: #E05524;
   --color-primary-dark: #C44A1E;
-  --t-bgMyDOCKPrimary: #E05524;
-  --t-bgMyDOCKHover: #C44A1E;
-  --t-bgMyDOCKSecondary: #9E3A18;
-  --t-bgMyDOCKTertiary: #FDF0EB;
-  --t-borderMyDOCK: #E05524;
-  --t-textMyDOCKPrimary: #E05524;
-  --t-textMyDOCKPrimaryHover: #C44A1E;
-  --t-borderSelected: #E05524;
+
+  /* Brand override na NOVÝCH názvech tokenů (mysabds 1.2.0 zrušil prefix --t-).
+     DS komponenty (NavItem, TextButton variant="brand", …) čtou tyto názvy. */
+  --bgMyDOCKPrimary: #E05524;
+  --bgMyDOCKHover: #C44A1E;
+  --bgMyDOCKSecondary: #9E3A18;
+  --bgMyDOCKTertiary: #FDF0EB;
+  --borderMyDOCK: #E05524;
+  --textMyDOCKPrimary: #E05524;
+  --textMyDOCKPrimaryHover: #C44A1E;
+  --textMyDOCKSecondary: #9E3A18;
+  --borderSelected: #E05524;
+
+  /* Kompatibilní alias: naše inline var(--t-*) mapujeme na přejmenované tokeny 1.2.0.
+     var() se vyhodnocuje v místě použití, takže alias funguje i v dark módu. */
+  --t-textPrimary: var(--textPrimary);
+  --t-textSecondary: var(--textSecondary);
+  --t-textTertiary: var(--textTertiary);
+  --t-textInverse: var(--textInverse);
+  --t-textSuccessPrimary: var(--textSuccessPrimary);
+  --t-textWarningPrimary: var(--textWarningPrimary);
+  --t-textDangerPrimary: var(--textDangerPrimary);
+  --t-textDanger: var(--textDangerPrimary);
+  --t-textMyDOCKPrimary: var(--textMyDOCKPrimary);
+  --t-textMyDOCKPrimaryHover: var(--textMyDOCKPrimaryHover);
+  --t-bgPrimary: var(--bgPrimary);
+  --t-bgSecondary: var(--bgSecondary);
+  --t-bgTertiary: var(--bgTertiary);
+  --t-bgHover: var(--bgHover);
+  --t-bgSuccessTertiary: var(--bgSuccessTertiary);
+  --t-bgWarningTertiary: var(--bgWarningTertiary);
+  --t-bgMyDOCK: var(--bgMyDOCKPrimary);
+  --t-bgMyDOCKPrimary: var(--bgMyDOCKPrimary);
+  --t-bgMyDOCKHover: var(--bgMyDOCKHover);
+  --t-bgMyDOCKSecondary: var(--bgMyDOCKSecondary);
+  --t-bgMyDOCKTertiary: var(--bgMyDOCKTertiary);
+  --t-borderPrimary: var(--borderPrimary);
+  --t-borderPrimaryHover: var(--borderPrimaryHover);
+  --t-borderSelected: var(--borderSelected);
+  --t-borderSuccess: var(--borderSuccess);
+  --t-borderWarning: var(--borderWarning);
+  --t-borderDanger: var(--borderDanger);
+  --t-borderDangerPrimary: var(--borderDanger);
+  --t-borderMyDOCK: var(--borderMyDOCK);
 }
 
 @keyframes tagEnter {

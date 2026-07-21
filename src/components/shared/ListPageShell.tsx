@@ -41,6 +41,7 @@ function ActionButton({ action }: { action: PageAction }) {
     <Button
       label={action.label}
       variant={variant}
+      size="md"
       leadIcon={leadIcon}
       onClick={action.onClick}
     />

@@ -80,7 +80,7 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }: TopBarProp
 
       {/* Right — actions + avatar */}
       <div style={{ flex: '1 1 0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-        <div style={{ paddingLeft: 12, paddingRight: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12 }}>
           <TextButton label="Odeslat SMS" variant="neutral" size="sm" leadIcon={MessageCircle} onClick={() => setSmsOpen(true)} />
         </div>
         <div style={{ width: 1, height: 16, background: 'var(--t-borderPrimary)', flexShrink: 0 }} />
