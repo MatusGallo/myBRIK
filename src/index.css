@@ -37,6 +37,7 @@
   --t-bgHover: var(--bgHover);
   --t-bgSuccessTertiary: var(--bgSuccessTertiary);
   --t-bgWarningTertiary: var(--bgWarningTertiary);
+  --t-bgDangerTertiary: var(--bgDangerTertiary);
   --t-bgMyDOCK: var(--bgMyDOCKPrimary);
   --t-bgMyDOCKPrimary: var(--bgMyDOCKPrimary);
   --t-bgMyDOCKHover: var(--bgMyDOCKHover);
@@ -143,4 +144,19 @@ body {
   font-family: 'Inter', sans-serif;
   background-color: #F8F9FA;
   color: #111827;
+}
+
+/* DistributionChart — hover na klikatelném segmentu (proklik): text i chevron
+   se přebarví danger tokenem, text se podtrhne. */
+.dist-segment-clickable .dist-label,
+.dist-segment-clickable .dist-chevron {
+  transition: color 120ms ease;
+}
+.dist-segment-clickable:hover .dist-label {
+  color: var(--t-textDanger);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dist-segment-clickable:hover .dist-chevron {
+  color: var(--t-textDanger);
 }

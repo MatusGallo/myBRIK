@@ -127,7 +127,7 @@ export default function NabidkyListPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between h-10 mb-4">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-[var(--t-textPrimary)] leading-none">Nabídky</h1>
         <div className="flex items-center gap-2">
           <Button label="Export" variant="outlined" size="md" leadIcon={Download} />

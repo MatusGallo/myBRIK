@@ -9,13 +9,13 @@ import {
   RefreshCw, TrendingUp, Coins, FileText, PenLine, CalendarCheck, CalendarClock, ArrowDownToLine,
   Share2, Users, Landmark, User, StickyNote,
   CircleCheck, CircleX, Circle,
-  ExternalLink,
+  ExternalLink, MailX,
   type LucideIcon,
 } from 'lucide-react'
 import {
   IconButton, TableHeaderCell, TableCell, Badge,
-  Avatar, Button, TextButton, Menu, MenuItem, FilterSelect, Alert, Dialog, Search, Breadcrumbs,
-  Toggle, RadioGroupItem, typography, TooltipIcon, LineTabGroup,
+  Avatar, TextButton, Menu, MenuItem, FilterSelect, FilterButton, Alert, Dialog, Search, Breadcrumbs,
+  Toggle, typography, TooltipIcon, LineTabGroup, PillTabGroup,
 } from '@matusgallo/mysabds'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { nabidkyData } from '../../data/mockData'
@@ -25,19 +25,12 @@ import NovyNakladModal, { type NakladFormData } from '../../components/nabidky/N
 import OstatniTokModal, { type OstatniTokFormData } from '../../components/nabidky/OstatniTokModal'
 import PridatUhraduModal, { type UhradaFormData, uhradaFormaLabel } from '../../components/nabidky/PridatUhraduModal'
 import NahratDokumentyModal from '../../components/nabidky/NahratDokumentyModal'
+import AutomatickeStatistikyModal, {
+  type StatsAutoSettings, defaultStatsSettings, statsSummaryLabel,
+} from '../../components/nabidky/AutomatickeStatistikyModal'
 import EmptyState from '../../components/shared/EmptyState'
 import NovaNabidkaForm from '../../components/nabidky/NovaNabidkaForm'
 import { nabidkaToFormData } from '../../components/nabidky/nabidkaToFormData'
-
-const STATS_OPTIONS: Array<{ dny: number; label: string; popis: string }> = [
-  { dny: 0,  label: 'Neposílat',       popis: 'Klientovi se neodesílá žádný přehled.' },
-  { dny: 7,  label: 'Každý týden',     popis: 'Přehled odejde vždy po 7 dnech od publikace.' },
-  { dny: 14, label: 'Každé dva týdny', popis: 'Přehled odejde vždy po 14 dnech od publikace.' },
-  { dny: 21, label: 'Každé tři týdny', popis: 'Přehled odejde vždy po 21 dnech od publikace.' },
-  { dny: 30, label: 'Každý měsíc',     popis: 'Přehled odejde vždy po 30 dnech od publikace.' },
-]
-
-const statsOption = (dny: number) => STATS_OPTIONS.find(o => o.dny === dny) ?? STATS_OPTIONS[0]
 
 interface OstatniTokRow {
   id: number
@@ -373,17 +366,22 @@ const EXPORT_HISTORY_ROWS = [
   { datum: '24.10.2024 11:53', server: 'Sreality', logo: '/portal-logos/sreality.ico',      popis: 'Topování proběhlo v pořádku' },
   { datum: '21.10.2024 20:53', server: 'Sreality', logo: '/portal-logos/sreality.ico',      popis: 'Export nabídky [21324056] proběhl v pořádku' },
   { datum: '21.10.2024 20:53', server: 'Idnes',    logo: '/portal-logos/reality-idnes.ico', popis: 'Export nabídky proběhl v pořádku [10424315]' },
-  { datum: '20.10.2024 09:12', server: 'Bazoš',    logo: '/portal-logos/bazos.png',         popis: 'Export nabídky selhal — chybí povinné pole „Cena"' },
+  { datum: '20.10.2024 09:12', server: 'Bazoš',    logo: '/portal-logos/bazos.png',         popis: 'Export nabídky selhal - chybí povinné pole „Cena"' },
   { datum: '18.10.2024 16:41', server: 'Reality MIX', logo: '/portal-logos/realitymix.png', popis: 'Export nabídky proběhl v pořádku [88213]' },
   { datum: '15.10.2024 08:05', server: 'Sbazar',   logo: '/portal-logos/sbazar.png',        popis: 'Export nabídky proběhl v pořádku [55201]' },
   { datum: '14.10.2024 22:30', server: 'Idnes',    logo: '/portal-logos/reality-idnes.ico', popis: 'Aktualizace nabídky proběhla v pořádku' },
-  { datum: '12.10.2024 11:18', server: 'Eurobydlení', logo: '/portal-logos/eurobydleni.png', popis: 'Export nabídky selhal — nedostupné API portálu' },
+  { datum: '12.10.2024 11:18', server: 'Eurobydlení', logo: '/portal-logos/eurobydleni.png', popis: 'Export nabídky selhal - nedostupné API portálu' },
   { datum: '10.10.2024 13:47', server: 'Sreality', logo: '/portal-logos/sreality.ico',      popis: 'Aktualizace ceny proběhla v pořádku' },
   { datum: '08.10.2024 07:59', server: 'Realingo', logo: '/portal-logos/realingo.ico',      popis: 'Export nabídky proběhl v pořádku [40118]' },
   { datum: '05.10.2024 19:22', server: 'Sreality', logo: '/portal-logos/sreality.ico',      popis: 'První export nabídky proběhl v pořádku [21324056]' },
 ]
 
 const HISTORY_PAGE_SIZE = 7
+
+// Počet chybových záznamů v historii exportu — pro badge u filtru a signalizaci chyby.
+const EXPORT_HISTORY_ERROR_COUNT = EXPORT_HISTORY_ROWS.filter(
+  r => exportLogTone(r.popis).kind === 'error',
+).length
 
 interface DokFolderNode {
   id: string
@@ -507,39 +505,25 @@ function validityFact(value: string): { valueColor: string; note: string | null 
   return { valueColor: state === 'ok' ? 'var(--t-textPrimary)' : c.accent, note }
 }
 
-// Řádek definičního seznamu: ikona + popisek vlevo, hodnota vpravo, tenká linka pod ním.
-// Volitelně barva hodnoty a poznámka (využívá se pro stav platnosti RS/ZS).
-function FactRow({ icon: Icon, label, value, valueColor, note, noBorder }: {
-  icon: LucideIcon; label: string; value: string
-  valueColor?: string; note?: string | null; noBorder?: boolean
+// Kompaktní řádek faktu — ikona + popisek + hodnota na jednom řádku, hodnota hned
+// za popiskem (pevná šířka popisku zarovná hodnoty ve sloupci). Volitelná barva a
+// poznámka (využívá se u platnosti RS/ZS) se přidává jako drobný barevný dovětek.
+function FactLine({ icon: Icon, label, value, valueColor, note }: {
+  icon: LucideIcon; label: string; value: string; valueColor?: string; note?: string | null
 }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-      padding: '11px 0',
-      borderBottom: noBorder ? 'none' : '1px solid var(--t-borderPrimary)',
-    }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <Icon size={15} style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />
-        {/* body14Regular */}
-        <span style={{ fontSize: 14, fontWeight: 400, lineHeight: '20px', color: 'var(--t-textSecondary)' }}>
-          {label}
-        </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, padding: '5px 0' }}>
+      <Icon size={15} style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />
+      <span style={{ fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)', flexShrink: 0, width: 132 }}>
+        {label}
       </span>
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0, flex: 1 }}>
-        {/* body14Semibold */}
-        <span title={value} style={{
-          fontSize: 14, fontWeight: 600, lineHeight: '20px',
-          color: valueColor ?? 'var(--t-textPrimary)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-        }}>
-          {value}
-        </span>
-        {note && (
-          <span style={{ fontSize: 11, fontWeight: 600, lineHeight: '14px', color: valueColor, whiteSpace: 'nowrap' }}>
-            {note}
-          </span>
-        )}
+      <span title={value} style={{
+        fontSize: 13, fontWeight: 600, lineHeight: '18px',
+        color: valueColor ?? 'var(--t-textPrimary)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+      }}>
+        {value}
+        {note && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: valueColor }}>· {note}</span>}
       </span>
     </div>
   )
@@ -608,7 +592,7 @@ function DashboardWidget({
         display: 'flex', flexDirection: 'column',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon size={16} style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />
           <span style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
@@ -620,6 +604,108 @@ function DashboardWidget({
         ))}
       </div>
       <div>{children}</div>
+    </div>
+  )
+}
+
+type Segment = { label: string; count: number; color: string; onClick?: () => void }
+
+// Rozložení jako seznam: řádek na stav (tečka + popisek vlevo, počet vpravo),
+// pod ním souvislý skládaný pruh se zaoblenými konci.
+function DistributionList({ segments }: { segments: Segment[] }) {
+  const total = segments.reduce((sum, s) => sum + s.count, 0)
+  const visible = segments.filter(s => s.count > 0)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {total > 0 && (
+        <div style={{ display: 'flex', gap: 6, height: 8 }}>
+          {visible.map(s => (
+            <div
+              key={s.label}
+              title={`${s.label}: ${s.count}`}
+              style={{ flexGrow: s.count, flexBasis: 0, minWidth: 6, background: s.color, borderRadius: 999 }}
+            />
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {segments.map((s, i) => (
+          <div
+            key={s.label}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+              paddingBlock: 8,
+              borderTop: i === 0 ? undefined : '1px solid var(--t-borderPrimary)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {s.label}
+              </span>
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)', flexShrink: 0 }}>
+              {s.count}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Rozložení stavů podle vzoru grafu „Social / CPC / Organic":
+// nahoře legenda ve sloupcích (tečka + popisek, pod tím „% / počet"),
+// pod ní segmentový pruh s mezerami a zaoblenými konci, šířka podle podílu.
+function DistributionChart({ segments }: { segments: Segment[] }) {
+  const total = segments.reduce((sum, s) => sum + s.count, 0)
+  const visible = segments.filter(s => s.count > 0)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {total > 0 && (
+        <div style={{ display: 'flex', gap: 6, height: 8 }}>
+          {visible.map(s => (
+            <div
+              key={s.label}
+              title={`${s.label}: ${s.count}`}
+              style={{ flexGrow: s.count, flexBasis: 0, minWidth: 6, background: s.color, borderRadius: 999 }}
+            />
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 12 }}>
+        {segments.map(s => {
+          const pct = total ? Math.round((s.count / total) * 100) : 0
+          const clickable = !!s.onClick && s.count > 0
+          return (
+            <div
+              key={s.label}
+              className={clickable ? 'dist-segment-clickable' : undefined}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              title={clickable ? `Zobrazit: ${s.label}` : undefined}
+              onClick={clickable ? e => { e.stopPropagation(); s.onClick!() } : undefined}
+              onKeyDown={clickable ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); s.onClick!() } } : undefined}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0,
+                cursor: clickable ? 'pointer' : undefined,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: s.color, flexShrink: 0 }} />
+                <span className={clickable ? 'dist-label' : undefined} style={{ fontSize: 12, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.label}
+                </span>
+                {clickable && <ChevronRight size={14} className="dist-chevron" style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>{s.count}</span>
+                <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>/ {pct} %</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -705,31 +791,20 @@ const AGENDA_LIST: Array<{ typ: string; klient: string; datum: string; cas: stri
 const NAKLADY_SUM = 8400
 const PROVIZE_SUM = 10000
 
-function WidgetExporty({ onTab }: { onTab: (t: string) => void }) {
+function WidgetExporty({ onTab, onError }: { onTab: (t: string) => void; onError: () => void }) {
   const exportCounts = EXPORT_SERVERS_INITIAL.reduce(
     (acc, s) => { acc[serverStatus(s)] += 1; return acc },
     { ok: 0, error: 0, off: 0 } as Record<ExportStatus, number>,
   )
-  const exportSummary: Array<{ label: string; count: number; color: string }> = [
+  const exportSummary: Segment[] = [
     { label: 'Exportováno',    count: exportCounts.ok,    color: '#16A34A' },
-    { label: 'Chyba exportu',  count: exportCounts.error, color: 'var(--t-textDanger)' },
+    // Chyby jsou proklik do logu exportu s vyfiltrovaným chybovým stavem.
+    { label: 'Chyba exportu',  count: exportCounts.error, color: 'var(--t-textDanger)', onClick: onError },
     { label: 'Neexportuje se', count: exportCounts.off,   color: 'var(--t-textSecondary)' },
   ]
   return (
     <DashboardWidget icon={Share2} title="Exporty" onClick={() => onTab('exporty')}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {exportSummary.map(stat => (
-          <div key={stat.label} style={{
-            flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
-            padding: '10px 12px', borderRadius: 8, background: 'var(--t-bgSecondary)',
-          }}>
-            <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: stat.color }}>{stat.count}</span>
-            <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {stat.label}
-            </span>
-          </div>
-        ))}
-      </div>
+      <DistributionChart segments={exportSummary} />
     </DashboardWidget>
   )
 }
@@ -856,45 +931,16 @@ function WidgetAgenda({ onTab }: { onTab: (t: string) => void }) {
 }
 
 function WidgetPary({ onClick }: { onClick: () => void }) {
-  // Tři dlaždice v řadě. „Nezpracováno" je akční (čeká na makléře), proto první
-  // „Nezpracováno" je akční (čeká na makléře) — samostatný box na celou šířku,
-  // danger barvou. „Odesláno" a „Zamítnuto" jsou informativní, ve dvou boxech pod tím.
-  const nezpracovano = 2
-  const info: Array<{ label: string; count: number }> = [
-    { label: 'Odesláno',  count: 5 },
-    { label: 'Zamítnuto', count: 1 },
+  // Rozložení párů podle stavu: akční „Nezpracováno" červeně, odeslané zeleně,
+  // zamítnuté neutrálně šedě.
+  const segments: Segment[] = [
+    { label: 'Nezpracováno', count: 2, color: '#DC2626' },
+    { label: 'Odesláno',     count: 5, color: '#16A34A' },
+    { label: 'Zamítnuto',    count: 1, color: 'var(--t-textSecondary)' },
   ]
   return (
     <DashboardWidget icon={TrendingUp} title="Nejnovější páry" onClick={onClick}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* Nezpracováno — samostatný box na celou šířku, popisek vlevo, hodnota vpravo */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-          padding: '10px 12px', borderRadius: 8, background: 'rgba(220, 38, 38, 0.12)',
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#DC2626' }}>Nezpracováno</span>
-          <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: '#DC2626', flexShrink: 0 }}>
-            {nezpracovano}
-          </span>
-        </div>
-
-        {/* Odesláno + Zamítnuto — dva boxy vedle sebe, popisek vlevo, hodnota vpravo */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          {info.map(stat => (
-            <div key={stat.label} style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-              padding: '10px 12px', borderRadius: 8, background: 'var(--t-bgSecondary)',
-            }}>
-              <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {stat.label}
-              </span>
-              <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)', flexShrink: 0 }}>
-                {stat.count}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <DistributionList segments={segments} />
     </DashboardWidget>
   )
 }
@@ -1186,7 +1232,7 @@ function QuickActionsColumn({ onEdit, onHypo, onNaklad, onDownloadPhotos, onPozn
       display: 'flex', flexDirection: 'column',
       position: 'sticky', top, alignSelf: 'flex-start',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <span style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
           Akce na nabídce
         </span>
@@ -1342,7 +1388,7 @@ function Widget({ children, padding = 16 }: { children: React.ReactNode; padding
 function Section({ title, icon: Icon, action, children }: { title: string; icon?: LucideIcon; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         {Icon && <Icon size={16} style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />}
         <span style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
           {title}
@@ -1423,9 +1469,16 @@ export default function NabidkaDetailPage() {
   const [statsDateOpen, setStatsDateOpen] = useState(false)
   const [exportPortalOpen, setExportPortalOpen] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
-  const [statsFrequency, setStatsFrequency] = useState(0) // 0 = neposílat — uložená hodnota
-  const [statsFrequencyDraft, setStatsFrequencyDraft] = useState(0) // výběr v modalu před uložením
-  const [statsModalOpen, setStatsModalOpen] = useState(false) // modal pro nastavení frekvence
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'error'>('all')
+  const [scrollHistoryPending, setScrollHistoryPending] = useState(false)
+  const historyRef = useRef<HTMLDivElement>(null)
+  const [statsSettings, setStatsSettings] = useState<StatsAutoSettings>(() => defaultStatsSettings({
+    maklerJmeno: MOCK_DETAIL.maklerJmeno,
+    maklerTelefon: MOCK_DETAIL.maklerTelefon,
+    maklerEmail: MOCK_DETAIL.maklerEmail,
+    maklerEmailKopie: MOCK_DETAIL.maklerEmail,
+  }))
+  const [statsModalOpen, setStatsModalOpen] = useState(false) // modal pro nastavení odesílání statistik
   const [dokSelected, setDokSelected] = useState<string | null>('nabidka')
   const [dokExpanded, setDokExpanded] = useState<Set<string>>(new Set(['nabidka']))
   const [nahratOpen, setNahratOpen] = useState(false)
@@ -1458,6 +1511,21 @@ export default function NabidkaDetailPage() {
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [])
+
+  // Po přepnutí na záložku Exporty odscrolluj k logu (kotva z „Základní informace“ / z chybového stavu).
+  useEffect(() => {
+    if (scrollHistoryPending && tab === 'exporty') {
+      historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setScrollHistoryPending(false)
+    }
+  }, [scrollHistoryPending, tab])
+
+  // Kotva na chybu v exportu: přepni na Exporty, vyfiltruj jen chyby a odscrolluj k logu.
+  function goToExportError() {
+    setHistoryFilter('error')
+    setTab('exporty')
+    setScrollHistoryPending(true)
+  }
 
   useEffect(() => {
     if (!katastrOpen) return
@@ -1645,7 +1713,7 @@ export default function NabidkaDetailPage() {
                 </div>
               </div>
 
-              {/* Right column — price + 2-column stat tiles */}
+              {/* Right column — cena + provize (fakta jsou kompaktně pod kartou) */}
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 12 }}>
 
                 {/* Price + provize */}
@@ -1675,7 +1743,7 @@ export default function NabidkaDetailPage() {
                   </div>
                 </div>
 
-                {/* Data platnosti RS/ZS — pod sumami, barevný stav platnosti */}
+                {/* Platnost RS/ZS — pod sumami, barevný stav platnosti */}
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                   {([
                     { icon: CalendarCheck, label: 'Platnost RS', value: d.platnostRS },
@@ -1697,27 +1765,19 @@ export default function NabidkaDetailPage() {
               </div>
             </div>
 
-            {/* Fakty — dvousloupcový definiční seznam s linkami mezi řádky. */}
+            {/* Fakty — kompaktní jednořádkové položky ve dvou zarovnaných sloupcích. */}
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              columnGap: 40,
+              columnGap: 32, rowGap: 0,
             }}>
-              {(() => {
-                const facts: Array<{ icon: LucideIcon; label: string; value: string }> = [
-                  { icon: Home,          label: 'Typ nemovitosti',  value: n.typObjektu.charAt(0).toUpperCase() + n.typObjektu.slice(1) },
-                  { icon: Maximize2,     label: 'Užitná plocha',    value: `${d.uzitnaPocha} m²` },
-                  { icon: Tag,           label: 'Typ transakce',    value: d.typTransakce },
-                  { icon: ShieldCheck,   label: 'Stav nemovitosti', value: d.stavNemovitosti },
-                  { icon: KeyRound,      label: 'Vlastnictví',      value: d.vlastnictvi },
-                  { icon: Hammer,        label: 'Budova',           value: d.budova },
-                  { icon: Building2,     label: 'Pobočka',          value: n.pobocka },
-                  { icon: Clock,         label: 'Poslední změna',   value: n.datumPosledniZmeny },
-                ]
-                // Poslední řádek každého sloupce už spodní linku nemá.
-                return facts.map((f, i) => (
-                  <FactRow key={f.label} {...f} noBorder={i >= facts.length - 2} />
-                ))
-              })()}
+              <FactLine icon={Home}        label="Typ nemovitosti"  value={n.typObjektu.charAt(0).toUpperCase() + n.typObjektu.slice(1)} />
+              <FactLine icon={Maximize2}   label="Užitná plocha"    value={`${d.uzitnaPocha} m²`} />
+              <FactLine icon={Tag}         label="Typ transakce"    value={d.typTransakce} />
+              <FactLine icon={ShieldCheck} label="Stav nemovitosti" value={d.stavNemovitosti} />
+              <FactLine icon={KeyRound}    label="Vlastnictví"      value={d.vlastnictvi} />
+              <FactLine icon={Hammer}      label="Budova"           value={d.budova} />
+              <FactLine icon={Building2}   label="Pobočka"          value={n.pobocka} />
+              <FactLine icon={Clock}       label="Poslední změna"   value={n.datumPosledniZmeny} />
               </div>
               </div>
               {/* /Property hero card */}
@@ -1765,7 +1825,7 @@ export default function NabidkaDetailPage() {
 
                 {/* Sloupec 2 — Exporty + Příležitosti + Nejnovější páry + Elektronické podpisy + Stav hypotéky + Interní poznámka */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <WidgetExporty onTab={setTab} />
+                  <WidgetExporty onTab={setTab} onError={goToExportError} />
 
                   <WidgetPrilezitosti onTab={setTab} />
 
@@ -1835,22 +1895,32 @@ export default function NabidkaDetailPage() {
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 15, fontWeight: 600, lineHeight: '22px', color: 'var(--t-textPrimary)' }}>
-                      {statsOption(statsFrequency).label}
+                      {statsSummaryLabel(statsSettings)}
                     </span>
                     <Badge
-                      label={statsFrequency === 0 ? 'Vypnuto' : 'Aktivní'}
-                      variant={statsFrequency === 0 ? 'neutral' : 'success'}
+                      label={statsSettings.active ? 'Aktivní' : 'Vypnuto'}
+                      variant={statsSettings.active ? 'success' : 'neutral'}
                       lead="indicator"
                       size="xs"
                     />
                   </div>
                 </div>
-                <TextButton
-                  label="Nastavit"
-                  variant="brand"
-                  leadIcon={Pencil}
-                  onClick={() => { setStatsFrequencyDraft(statsFrequency); setStatsModalOpen(true) }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  {statsSettings.active && (
+                    <TextButton
+                      label="Vypnout"
+                      variant="danger"
+                      leadIcon={MailX}
+                      onClick={() => setStatsSettings(s => ({ ...s, active: false }))}
+                    />
+                  )}
+                  <TextButton
+                    label={statsSettings.active ? 'Upravit' : 'Nastavit'}
+                    variant="brand"
+                    leadIcon={Pencil}
+                    onClick={() => setStatsModalOpen(true)}
+                  />
+                </div>
               </div>
             </Widget>
 
@@ -1928,28 +1998,13 @@ export default function NabidkaDetailPage() {
 
                   {/* Filter — výběr portálu (select s menu) */}
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    {/* FilterSelect nemá slot pro koncovou ikonu → chevron kreslíme jako
-                        rotující overlay a v labelu necháme em mezeru na jeho místo. */}
-                    <div style={{ position: 'relative', display: 'inline-flex' }}>
-                      <FilterSelect
-                        label={`${exportPortal ?? 'Všechny portály'} `}
-                        leadIcon={statsSelectedServer ? LOGO_LEAD_ICONS[statsSelectedServer.logo] : undefined}
-                        selected={exportPortalOpen || exportPortal !== null}
-                        onClick={() => setExportPortalOpen(o => !o)}
-                      />
-                      <ChevronDown
-                        size={14}
-                        aria-hidden
-                        style={{
-                          position: 'absolute', right: 8, top: '50%',
-                          transform: `translateY(-50%) rotate(${exportPortalOpen ? 180 : 0}deg)`,
-                          transition: 'transform 0.15s ease',
-                          color: (exportPortalOpen || exportPortal !== null)
-                            ? 'var(--t-textInverse)' : 'var(--t-textSecondary)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    </div>
+                    <FilterButton
+                      label={exportPortal ?? 'Všechny portály'}
+                      leadIcon={statsSelectedServer ? LOGO_LEAD_ICONS[statsSelectedServer.logo] : undefined}
+                      chevronSide="right"
+                      active={exportPortalOpen || exportPortal !== null}
+                      onClick={() => setExportPortalOpen(o => !o)}
+                    />
                     {exportPortalOpen && (
                       <>
                         {/* Zavření kliknutím mimo */}
@@ -1999,6 +2054,13 @@ export default function NabidkaDetailPage() {
                         <span style={{ fontSize: 14, fontWeight: 400, lineHeight: '20px', color: 'var(--t-textSecondary)', maxWidth: 360 }}>
                           Export na {statsSelectedServer?.name} se nezdařil, proto pro tento portál nemáme žádná data o zobrazení.
                         </span>
+                        <TextButton
+                          label="Zobrazit chybu v logu"
+                          variant="brand"
+                          size="md"
+                          tailIcon={ChevronRight}
+                          onClick={goToExportError}
+                        />
                       </div>
                     ) : (
                     <ResponsiveContainer width="100%" height="100%">
@@ -2133,10 +2195,35 @@ export default function NabidkaDetailPage() {
             </Widget>
 
             {/* Log exportu — kartový feed místo tabulky */}
+            {(() => {
+            // Filtr logu „Vše / Chyby“. Ve stavu „Chyby“ ukazujeme rovnou všechny chybové
+            // záznamy (bez stránkování), aby chyba nezůstala schovaná mezi skrytými událostmi.
+            const historyRows = historyFilter === 'error'
+              ? EXPORT_HISTORY_ROWS.filter(r => exportLogTone(r.popis).kind === 'error')
+              : EXPORT_HISTORY_ROWS
+            const collapsible = historyFilter === 'all' && historyRows.length > HISTORY_PAGE_SIZE
+            const visibleRows = collapsible && !historyExpanded
+              ? historyRows.slice(0, HISTORY_PAGE_SIZE)
+              : historyRows
+            return (
+            <div ref={historyRef} style={{ scrollMarginTop: 72 }}>
             <Widget>
-              <Section title="Historie exportu">
+              <Section
+                title="Historie exportu"
+                action={EXPORT_HISTORY_ERROR_COUNT > 0 ? (
+                  <PillTabGroup
+                    size="md"
+                    value={historyFilter}
+                    onChange={v => setHistoryFilter(v as 'all' | 'error')}
+                    tabs={[
+                      { value: 'all', label: 'Vše' },
+                      { value: 'error', label: 'Chyby', badge: EXPORT_HISTORY_ERROR_COUNT },
+                    ]}
+                  />
+                ) : undefined}
+              >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(historyExpanded ? EXPORT_HISTORY_ROWS : EXPORT_HISTORY_ROWS.slice(0, HISTORY_PAGE_SIZE)).map((r, i) => {
+                  {visibleRows.map((r, i) => {
                     const tone = exportLogTone(r.popis)
                     const isError = tone.kind === 'error'
                     return (
@@ -2145,7 +2232,7 @@ export default function NabidkaDetailPage() {
                         style={{
                           display: 'flex', flexDirection: 'column', gap: 6,
                           padding: '10px 12px',
-                          background: isError ? 'rgba(220,38,38,0.05)' : 'var(--t-bgSecondary)',
+                          background: isError ? 'var(--t-bgDangerTertiary)' : 'var(--t-bgSecondary)',
                           borderRadius: 8,
                         }}
                       >
@@ -2174,12 +2261,12 @@ export default function NabidkaDetailPage() {
                     )
                   })}
                 </div>
-                {EXPORT_HISTORY_ROWS.length > HISTORY_PAGE_SIZE && (
+                {collapsible && (
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
                     <TextButton
                       label={historyExpanded
                         ? 'Zobrazit méně'
-                        : `Zobrazit dalších ${EXPORT_HISTORY_ROWS.length - HISTORY_PAGE_SIZE}`}
+                        : `Zobrazit dalších ${historyRows.length - HISTORY_PAGE_SIZE}`}
                       variant="brand"
                       leadIcon={historyExpanded ? ChevronUp : ChevronDown}
                       onClick={() => setHistoryExpanded(v => !v)}
@@ -2188,6 +2275,9 @@ export default function NabidkaDetailPage() {
                 )}
               </Section>
             </Widget>
+            </div>
+            )
+            })()}
             </div>
 
             {/* ── Pravý sloupec: nastavení exportů ─────────────────────────── */}
@@ -2250,9 +2340,17 @@ export default function NabidkaDetailPage() {
                             />
                           </div>
                         </div>
-                        {/* Stav jen u chyby — pod celým řádkem, zarovnaný pod název */}
+                        {/* Stav jen u chyby — pod celým řádkem, zarovnaný pod název.
+                            Proklik na badge odscrolluje do logu s vyfiltrovanými chybami. */}
                         {status === 'error' && (
-                          <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 34 }}>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            title="Zobrazit chyby v logu exportu"
+                            onClick={goToExportError}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToExportError() } }}
+                            style={{ display: 'flex', alignItems: 'center', paddingLeft: 34, cursor: 'pointer', width: 'fit-content' }}
+                          >
                             <Badge label={badge.label} variant={badge.variant} lead="icon" icon={badge.icon} size="sm" />
                           </div>
                         )}
@@ -2274,7 +2372,7 @@ export default function NabidkaDetailPage() {
 
             {/* Náklady widget */}
             <Widget>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>Náklady</div>
                 <TextButton label="Nový náklad" variant="brand" leadIcon={Plus} onClick={() => setNovyNakladOpen(true)} />
               </div>
@@ -2400,7 +2498,7 @@ export default function NabidkaDetailPage() {
 
             {/* Rozpad do struktury widget */}
             <Widget>
-              <div style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)', marginBottom: 12 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)', marginBottom: 16 }}>
                 Rozpad do struktury (uvedené částky jsou bez DPH)
               </div>
               <Alert
@@ -2768,81 +2866,13 @@ export default function NabidkaDetailPage() {
       {/* Editace nákladu modal */}
       {editNakladData && <NovyNakladModal initialData={editNakladData} onClose={() => setEditNakladData(null)} />}
 
-      {/* Nastavení statistik pro klienta — výběr frekvence z karet */}
-      {statsModalOpen && createPortal(
-        <>
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,13,18,0.4)' }}
-            onClick={() => setStatsModalOpen(false)}
-          />
-          <div style={{ position: 'fixed', inset: 0, zIndex: 201, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-            <div style={{
-              pointerEvents: 'auto',
-              background: 'var(--t-bgPrimary)',
-              borderRadius: 16,
-              width: 520,
-              maxWidth: 'calc(100vw - 32px)',
-              maxHeight: 'calc(100vh - 64px)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px rgba(10,13,18,0.2)',
-            }}>
-              {/* Header */}
-              <div style={{ padding: '20px 24px 4px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
-                    Statistiky pro klienta
-                  </div>
-                  <p style={{ margin: '2px 0 0', fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)' }}>
-                    Vyberte, jak často se má klientovi odesílat přehled e-mailem.
-                  </p>
-                </div>
-                <IconButton icon={X} variant="ghost" size="md" onClick={() => setStatsModalOpen(false)} />
-              </div>
-
-              {/* Karty možností */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {STATS_OPTIONS.map((o, i) => (
-                    <div key={o.dny}>
-                      <div
-                        style={{
-                          borderRadius: 12,
-                          outline: o.dny === statsFrequencyDraft ? '2px solid var(--t-borderMyDOCK)' : '2px solid transparent',
-                          outlineOffset: '-2px',
-                        }}
-                      >
-                        <RadioGroupItem
-                          label={o.label}
-                          description={o.popis}
-                          checked={o.dny === statsFrequencyDraft}
-                          onChange={() => setStatsFrequencyDraft(o.dny)}
-                          width="100%"
-                        />
-                      </div>
-                      {/* Oddělit „Neposílat" (vypnuto) od reálných frekvencí */}
-                      {i === 0 && (
-                        <div style={{ height: 1, background: 'var(--t-borderPrimary)', margin: '12px 4px' }} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--t-borderPrimary)', flexShrink: 0 }}>
-                <Button label="Zrušit" variant="outlined" onClick={() => setStatsModalOpen(false)} />
-                <Button
-                  label="Uložit"
-                  variant="primary"
-                  onClick={() => { setStatsFrequency(statsFrequencyDraft); setStatsModalOpen(false) }}
-                />
-              </div>
-            </div>
-          </div>
-        </>,
-        document.body,
+      {/* Nastavení automatického odesílání statistik klientovi */}
+      {statsModalOpen && (
+        <AutomatickeStatistikyModal
+          initial={statsSettings}
+          onClose={() => setStatsModalOpen(false)}
+          onSave={setStatsSettings}
+        />
       )}
 
       {/* Smazat náklad confirm dialog */}

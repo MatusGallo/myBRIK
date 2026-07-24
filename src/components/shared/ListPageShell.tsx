@@ -56,7 +56,7 @@ export default function ListPageShell({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between h-10 mb-4">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-[var(--t-textPrimary)] leading-none">{title}</h1>
         <div className="flex items-center gap-2">
           {actions.map((a, i) => <ActionButton key={i} action={a} />)}

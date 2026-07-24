@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import '@matusgallo/mysabds/tokens.css'
+import '@matusgallo/mysabds/styles.css'
 import './index.css'
 import App from './App'
 import PasswordGate from './components/PasswordGate'
